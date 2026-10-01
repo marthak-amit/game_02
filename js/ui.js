@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id), S = CM.save.d, app = $('app');
   const game = new CM.Game($('c')); CM.game = game;
   const show = id => { $(id).classList.remove('hidden'); }, hide = id => { $(id).classList.add('hidden'); };
-  let runCoinsSeen = 0, paused = false, overData = null, evoLevel = -1, toastT;
+  let shownScore = 0, targetScore = 0, runCoinsSeen = 0, paused = false, overData = null, evoLevel = -1, toastT;
 
   /* ---------- layout ---------- */
   function layout() {
@@ -20,6 +20,7 @@
     $('best').textContent = $('mBest').textContent = CM.fmt(S.best);
     for (const k of ['hammer', 'shake']) { const el = $('cnt' + k[0].toUpperCase() + k.slice(1)), n = S.items[k]; el.textContent = n > 0 ? n : 'AD'; el.className = 'badge' + (n > 0 ? '' : ' ad'); }
     $('mDailyBest').textContent = S.daily.date === CM.today() ? 'Best ' + CM.fmt(S.daily.score) : '';
+    $('mPlanetsN').textContent = Math.max(0, S.maxEver + 1) + '/' + CM.RAD.length;
     $('giftDot').classList.toggle('hidden', S.lastClaim === CM.today());
   }
   function addCoins(n) { S.coins += n; persist(); }
@@ -36,9 +37,13 @@
   }
 
   /* ---------- game callbacks ---------- */
-  game.cb.score = v => { $('score').textContent = CM.fmt(v); };
-  game.cb.next = lv => drawIcon($('nextC'), lv, S.skin, false);
-  game.cb.coinsEarned = tot => { const d = tot - runCoinsSeen; runCoinsSeen = tot; if (d > 0) { S.coins += d; CM.save.write(); $('coins').textContent = $('mCoins').textContent = CM.fmt(S.coins); } };
+  game.cb.score = v => { targetScore = v; if (v === 0) { shownScore = 0; $('score').textContent = '0'; return; } const el = $('score'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); };
+  function tickScore() { if (shownScore < targetScore) { shownScore = Math.min(targetScore, shownScore + Math.max(1, Math.ceil((targetScore - shownScore) * .18))); $('score').textContent = CM.fmt(shownScore); } }
+  function bumpEl(id) { const el = $(id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  game.cb.next = (lv, sp) => { const cv = $('nextC'); if (sp) { const c = cv.getContext('2d'); c.clearRect(0, 0, 96, 96); c.save(); c.translate(48, 48); CM.drawComet(c, 40); c.restore(); } else drawIcon(cv, lv, S.skin, false); };
+  game.cb.coinArrive = () => { bumpEl('coinPill'); CM.audio.tone(1200 + Math.random() * 300, .05, 'square', .04); };
+  game.cb.discover = lv => { if (lv <= S.maxEver) return; S.maxEver = lv; const rew = lv * 30; S.coins += rew; persist(); showDiscover(lv, rew); };
+  game.cb.coinsEarned = (tot) => { const d = tot - runCoinsSeen; runCoinsSeen = tot; if (d > 0) { S.coins += d; CM.save.write(); $('coins').textContent = $('mCoins').textContent = CM.fmt(S.coins); } };
   game.cb.combo = n => { const el = $('combo'); el.textContent = ['', '', 'NICE!', 'GREAT!', 'AWESOME!', 'AMAZING!'][Math.min(n, 5)] + (n > 5 ? ' ×' + n : ''); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 900); };
   game.cb.toast = toast;
   game.cb.dropped = n => { if (n === 1) $('hint').style.opacity = 0; };
@@ -46,6 +51,21 @@
   game.cb.over = onOver;
 
   function setTool(t) { game.tool = t; $('pwHammer').classList.toggle('active', t === 'hammer'); if (t === 'hammer') toast('Tap a planet to smash it'); }
+
+  function showDiscover(lv, rew) {
+    const el = $('discover'); drawIcon($('discC'), lv, S.skin, true); $('discN').textContent = CM.NAMES[lv]; $('discR').textContent = '+' + rew + ' coins';
+    el.classList.add('hidden'); void el.offsetWidth; el.classList.remove('hidden'); CM.audio.win(); CM.audio.buzz([30, 30, 60]); clearTimeout(el._t); el._t = setTimeout(() => el.classList.add('hidden'), 2800);
+  }
+
+  /* ---------- planetarium ---------- */
+  function openPlanetarium() {
+    CM.audio.click(); const g = $('planetGrid'); g.innerHTML = ''; $('planetSub').textContent = `Discovered ${S.maxEver + 1} / ${CM.RAD.length} — reach each planet once for bonus coins`;
+    CM.NAMES.forEach((n, i) => { const d = document.createElement('div'), ok = i <= S.maxEver; d.className = 'pcell' + (ok ? '' : ' lock'); d.style.animationDelay = i * .04 + 's';
+      const cv = document.createElement('canvas'); cv.width = cv.height = 96; drawIcon(cv, i, S.skin, ok); d.appendChild(cv);
+      d.insertAdjacentHTML('beforeend', `<b>${ok ? n : '???'}</b><small>${ok ? '✔' : '+' + i * 30 + ' 🪙'}</small>`); g.appendChild(d); });
+    show('planetarium');
+  }
+  $('mPlanets').onclick = openPlanetarium;
 
   /* ---------- flow ---------- */
   function startGame(mode) {
@@ -64,12 +84,13 @@
     else if (game.score > S.best) { S.best = game.score; newBest = true; }
     overData = { score: game.score, coins: game.coinsEarned + bonus, bonus, doubled: false }; persist();
     $('ovTitle').textContent = game.mode === 'daily' ? 'DAILY RESULT' : 'GAME OVER';
-    $('ovScore').textContent = CM.fmt(game.score); $('ovNew').textContent = newBest ? '🏆 NEW BEST!' : ''; if (newBest) CM.audio.win();
+    countUp($('ovScore'), game.score); const st = game.maxLevel >= 9 ? 3 : game.maxLevel >= 7 ? 2 : game.maxLevel >= 5 ? 1 : 0; document.querySelectorAll('#ovStars i').forEach((e, i) => { e.classList.remove('on'); void e.offsetWidth; if (i < st) e.classList.add('on'); }); $('ovNew').textContent = newBest ? '🏆 NEW BEST!' : ''; if (newBest) CM.audio.win();
     $('ovBest').textContent = CM.fmt(game.mode === 'daily' ? S.daily.score : S.best); $('ovCoins').textContent = '+' + CM.fmt(overData.coins);
     drawIcon($('ovTop'), game.maxLevel, S.skin, true);
     $('ovContinue').classList.toggle('hidden', game.continues >= 2); $('ovDouble').classList.remove('hidden'); $('ovDouble').disabled = false;
     show('over');
   }
+  function countUp(el, v) { const t0 = performance.now(), D = 900; (function f(n) { const k = Math.min(1, (n - t0) / D); el.textContent = CM.fmt(v * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0); }
   async function afterRun(next) { await CM.ads.interstitial('post_run'); next(); }
 
   $('mPlay').onclick = () => startGame('normal');
@@ -198,7 +219,7 @@
   }
 
   /* ---------- main loop ---------- */
-  function loop(now) { game.frame(now); if (game.state === 'menu') drawLogo(); else drawEvo(); requestAnimationFrame(loop); }
+  function loop(now) { game.frame(now); tickScore(); if (game.state === 'playing') { const w = game.warn > .3; $('pwHammer').classList.toggle('ready', w && S.items.hammer > 0); $('pwShake').classList.toggle('ready', w && S.items.shake > 0); } if (game.state === 'menu') drawLogo(); else drawEvo(); requestAnimationFrame(loop); }
   ensureMissions(); updateMissDot(); refresh(); requestAnimationFrame(loop);
   if (S.lastClaim !== CM.today() && S.games > 0) setTimeout(openDaily, 600);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});

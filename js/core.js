@@ -14,7 +14,7 @@ CM.track = (name, params) => { (CM.track.log = CM.track.log || []).push({ t: Dat
 CM.save = (() => {
   const KEY = 'cosmicmerge_v1';
   const def = { coins: 300, best: 0, daily: { date: '', score: 0 }, items: { hammer: 2, shake: 2 }, skins: ['cosmic'], skin: 'cosmic',
-    noAds: false, sound: true, music: true, missions: { date: '', list: [] }, haptics: true, streak: 0, lastClaim: '', games: 0, lastInterstitial: 0, adsToday: { date: '', n: 0 } };
+    noAds: false, maxEver: -1, sound: true, music: true, missions: { date: '', list: [] }, haptics: true, streak: 0, lastClaim: '', games: 0, lastInterstitial: 0, adsToday: { date: '', n: 0 } };
   let d;
   try { d = Object.assign({}, def, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { d = JSON.parse(JSON.stringify(def)); }
   const api = { d, write() { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} },

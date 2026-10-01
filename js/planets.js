@@ -57,12 +57,12 @@ CM.drawPlanet = function (c, lv, r, skin) {
 };
 
 /* Cute face, drawn upright (not rotated with the planet). blink 0..1 closes eyes, mood: 0 calm, 1 happy, 2 worried */
-CM.drawFace = function (c, r, blink, mood) {
+CM.drawFace = function (c, r, blink, mood, lx = 0, ly = 0) {
   const ex = r * .27, ey = -r * .05, er = Math.max(1.6, r * .095);
   c.save(); c.fillStyle = '#2a1a3a'; c.strokeStyle = '#2a1a3a'; c.lineCap = 'round'; c.lineWidth = Math.max(1.2, r * .06);
   for (const s of [-1, 1]) {
     if (blink > .5 || mood === 1) { c.beginPath(); if (mood === 1) c.arc(s * ex, ey + er * .6, er * 1.1, Math.PI * 1.1, Math.PI * 1.9); else { c.moveTo(s * ex - er, ey); c.lineTo(s * ex + er, ey); } c.stroke(); }
-    else { c.beginPath(); c.ellipse(s * ex, ey, er, er * (mood === 2 ? 1.3 : 1.15), 0, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(s * ex - er * .3, ey - er * .35, er * .35, 0, 7); c.fill(); c.fillStyle = '#2a1a3a'; }
+    else { const ox = lx * er * .7, oy = ly * er * .6; c.beginPath(); c.ellipse(s * ex + ox, ey + oy, er, er * (mood === 2 ? 1.3 : 1.15), 0, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(s * ex + ox - er * .3, ey + oy - er * .35, er * .35, 0, 7); c.fill(); c.fillStyle = '#2a1a3a'; }
   }
   c.beginPath();
   if (mood === 2) { c.arc(0, r * .38, r * .1, Math.PI * 1.1, Math.PI * 1.9); }
@@ -70,5 +70,18 @@ CM.drawFace = function (c, r, blink, mood) {
   else { c.arc(0, r * .16, r * .14, .25, Math.PI - .25); }
   c.stroke();
   c.fillStyle = 'rgba(255,90,120,.35)'; for (const s of [-1, 1]) { c.beginPath(); c.ellipse(s * r * .45, r * .16, r * .1, r * .06, 0, 0, 7); c.fill(); }
+  c.restore();
+};
+
+/* Wildcard comet: upgrades whatever planet it touches. */
+CM.drawComet = function (c, r) {
+  c.save();
+  const g = (c.createConicGradient ? c.createConicGradient(0, 0, 0) : null);
+  if (g) { ['#ff4d6d', '#ffb703', '#ffee32', '#2ed573', '#3a86ff', '#b05cff', '#ff4d6d'].forEach((col, i) => g.addColorStop(i / 6, col)); c.fillStyle = g; }
+  else { const l = c.createLinearGradient(-r, -r, r, r); l.addColorStop(0, '#ff4d6d'); l.addColorStop(.5, '#ffee32'); l.addColorStop(1, '#3a86ff'); c.fillStyle = l; }
+  c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
+  const sh = c.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r); sh.addColorStop(0, 'rgba(255,255,255,.7)'); sh.addColorStop(.5, 'rgba(255,255,255,.05)'); sh.addColorStop(1, 'rgba(0,0,40,.35)');
+  c.fillStyle = sh; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
+  c.fillStyle = '#fff'; c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .22 : r * .5; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.closePath(); c.globalAlpha = .9; c.fill();
   c.restore();
 };
