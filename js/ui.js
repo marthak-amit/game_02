@@ -7,7 +7,7 @@
 
   /* ---------- layout ---------- */
   function layout() {
-    const sc = Math.min(innerWidth / CM.W, innerHeight / 600, 1.45), H = Math.min(innerHeight / sc, 860), bw = CM.W * sc, bh = H * sc;
+    const sc = Math.min(innerWidth / CM.W, innerHeight / 600, 2.6), H = Math.min(innerHeight / sc, 860), bw = CM.W * sc, bh = H * sc;
     app.style.width = bw + 'px'; app.style.height = bh + 'px'; app.style.fontSize = (16 * sc) + 'px'; game.resize(bw, bh, sc, H);
     drawEvo(true);
   }
