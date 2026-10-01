@@ -1,5 +1,5 @@
 /* Planet definitions + procedural art. Everything is drawn with canvas gradients (no image assets). */
-CM.RAD = [13, 16, 19.5, 23.5, 28.5, 34.5, 41.5, 50, 60, 72, 87];
+CM.RAD = [13, 16, 19.5, 23.5, 28.5, 34.5, 41.5, 50, 60, 72, 87].map(r => +(r * 1.3).toFixed(1));
 CM.NAMES = ['Dust', 'Pebble', 'Moon', 'Mercury', 'Mars', 'Venus', 'Earth', 'Neptune', 'Saturn', 'Jupiter', 'Sun'];
 CM.MAXL = CM.RAD.length - 1;
 

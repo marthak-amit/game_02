@@ -13,6 +13,7 @@
   }
   addEventListener('resize', layout); layout();
 
+  CM.toast = t => toast(t);
   function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1800); }
   function persist() { CM.save.write(); refresh(); }
   function refresh() {
@@ -69,11 +70,11 @@
 
   /* ---------- flow ---------- */
   function startGame(mode) {
-    CM.audio.init(); CM.audio.click(); hide('menu'); hide('over'); hide('pause'); show('hud'); runCoinsSeen = 0; S.games++; CM.save.write();
+    CM.audio.init(); CM.audio.click(); if (!capApp) history.pushState({ g: 1 }, ''); hide('menu'); hide('over'); hide('pause'); show('hud'); runCoinsSeen = 0; S.games++; CM.save.write();
     $('modeTag').textContent = mode === 'daily' ? '📅 DAILY' : ''; $('hint').style.opacity = S.games <= 2 ? 1 : 0; $('hint').style.display = S.games <= 2 ? '' : 'none';
     missionProg('play', 1, true); game.start(mode); game.maxLevel = 0; CM.audio.music(true); evoLevel = -1; refresh(); CM.track('game_start', { mode, n: S.games });
   }
-  function toMenu() { CM.audio.music(false); hide('hud'); hide('over'); hide('pause'); game.state = 'menu'; refresh(); show('menu'); }
+  function toMenu() { CM.audio.music(true); hide('hud'); hide('over'); hide('pause'); game.state = 'menu'; refresh(); show('menu'); }
 
   function onOver() {
     CM.track('game_over', { score: game.score, lvl: game.maxLevel, mode: game.mode });
@@ -205,7 +206,7 @@
 
   /* ---------- settings ---------- */
   $('mSettings').onclick = () => { $('setSound').checked = S.sound; $('setMusic').checked = S.music; $('setHaptics').checked = S.haptics; CM.audio.click(); show('settings'); };
-  $('setSound').onchange = e => { S.sound = e.target.checked; persist(); }; $('setMusic').onchange = e => { S.music = e.target.checked; persist(); CM.audio.music(S.music && game.state === 'playing'); }; $('setHaptics').onchange = e => { S.haptics = e.target.checked; persist(); };
+  $('setSound').onchange = e => { S.sound = e.target.checked; persist(); }; $('setMusic').onchange = e => { S.music = e.target.checked; persist(); CM.audio.init(); CM.audio.musicSwitch(); }; $('setHaptics').onchange = e => { S.haptics = e.target.checked; persist(); };
   $('setRestore').onclick = async () => { if (CM.iap.provider && CM.iap.provider.restore) await CM.iap.provider.restore(); toast('Purchases restored'); };
   $('setReset').onclick = () => { if (confirm('Erase all progress?')) CM.save.reset(); };
 
@@ -217,6 +218,28 @@
       if (lv === 10) { const g = c.createRadialGradient(0, 0, r * .8, 0, 0, r * 1.6); g.addColorStop(0, 'rgba(255,190,60,.55)'); g.addColorStop(1, 'rgba(255,190,60,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r * 1.6, 0, 7); c.fill(); }
       CM.drawPlanet(c, lv, r, S.skin); CM.drawFace(c, r, (t + p) % 4 > 3.85 ? 1 : 0, 1); c.restore(); });
   }
+
+  /* ---------- back button / lifecycle ---------- */
+  function handleBack() {
+    if (!$('adOverlay').classList.contains('hidden')) return;
+    if (!$('buyOverlay').classList.contains('hidden')) { $('buyNo').click(); return; }
+    const open = [...document.querySelectorAll('.modal:not(.hidden)')].filter(e => e.id !== 'pause' && e.id !== 'over');
+    if (open.length) { const cl = open[open.length - 1].querySelector('.close'); cl ? cl.click() : open[open.length - 1].classList.add('hidden'); return; }
+    if (game.state === 'playing') { pause(true); return; }
+    if (game.state === 'paused') { pause(false); return; }
+    if (!$('over').classList.contains('hidden')) { toMenu(); return; }
+    const A = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App; if (A && A.exitApp) A.exitApp();
+  }
+  const capApp = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+  if (capApp) {
+    capApp.addListener('backButton', handleBack);
+    capApp.addListener('appStateChange', st => { if (!st.isActive) { if (game.state === 'playing') pause(true); CM.audio.suspend(true); } else CM.audio.suspend(false); });
+  } else {
+    history.replaceState({ menu: 1 }, ''); // web/PWA: browser back pauses the game instead of leaving
+    addEventListener('popstate', () => { if (game.state === 'playing' || game.state === 'paused') { handleBack(); history.pushState({ g: 1 }, ''); } });
+  }
+  document.addEventListener('visibilitychange', () => CM.audio.suspend(document.hidden));
+  document.addEventListener('pointerdown', () => { CM.audio.init(); CM.audio.musicSwitch(); }, { once: true });
 
   /* ---------- main loop ---------- */
   function loop(now) { game.frame(now); tickScore(); if (game.state === 'playing') { const w = game.warn > .3; $('pwHammer').classList.toggle('ready', w && S.items.hammer > 0); $('pwShake').classList.toggle('ready', w && S.items.shake > 0); } if (game.state === 'menu') drawLogo(); else drawEvo(); requestAnimationFrame(loop); }

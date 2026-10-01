@@ -29,3 +29,10 @@ Online leaderboards, more skins/seasons, event modes, push reminders, analytics 
 ## Android build (Capacitor)
 `sh scripts/build-www.sh && npm i && npx cap add android && npx cap sync android` → open in Android Studio.
 Then add AdMob + billing plugins and call `CM.ads.setProvider` / `CM.iap.setProvider`. Change `appId` in `capacitor.config.json`. Replace `privacy.html` placeholder and host it for the Play listing.
+
+## AdMob (Google ads) setup
+Test ads are live now (Google's official test unit IDs) via `@capacitor-community/admob` — rewarded + interstitial, with the consent (UMP) form.
+When you have real IDs:
+1. `js/config.js` → set `testMode: false` and fill the `prod` ids (rewarded, interstitial, banner).
+2. `android/app/src/main/AndroidManifest.xml` → replace the `com.google.android.gms.ads.APPLICATION_ID` value with your AdMob App ID.
+3. Rebuild the APK (push → GitHub Actions) and test on a real device. Never click your own live ads.
