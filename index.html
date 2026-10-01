@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0820">
+<meta name="description" content="Cosmic Merge - drop planets, merge them, build a Sun. A relaxing physics merge puzzle.">
+<title>Cosmic Merge</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <!-- in-game HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="score-box"><span class="lbl">SCORE</span><b id="score">0</b><span class="sub">BEST <b id="best">0</b> <em id="modeTag"></em></span></div>
+      <div class="next-box"><span class="lbl">NEXT</span><canvas id="nextC" width="96" height="96"></canvas></div>
+      <div class="right-box">
+        <div class="pill" id="coinPill"><i class="coin"></i><b id="coins">0</b><span class="plus">+</span></div>
+        <button class="icon-btn" id="pauseBtn" aria-label="Pause">❚❚</button>
+      </div>
+    </div>
+    <canvas id="evo" width="660" height="48"></canvas>
+    <div class="power-bar">
+      <button class="power" id="pwHammer"><span class="pi">🔨</span><span class="pn">Hammer</span><span class="badge" id="cntHammer">2</span></button>
+      <button class="power" id="pwShake"><span class="pi">🌀</span><span class="pn">Shake</span><span class="badge" id="cntShake">2</span></button>
+      <button class="power" id="pwSwap"><span class="pi">🔄</span><span class="pn">Swap</span><span class="badge ad" id="cntSwap">AD</span></button>
+    </div>
+    <div id="combo" class="combo"></div>
+    <div id="hint" class="hint">Drag &amp; release to drop.<br>Match two of a kind to merge!</div>
+  </div>
+
+  <!-- home -->
+  <div id="menu" class="screen">
+    <div class="menu-top">
+      <button class="icon-btn" id="mShop" aria-label="Shop">🛒</button>
+      <div class="pill" id="coinPill2"><i class="coin"></i><b id="mCoins">0</b></div>
+      <button class="icon-btn" id="mSettings" aria-label="Settings">⚙️</button>
+    </div>
+    <div class="logo"><span class="l1">COSMIC</span><span class="l2">MERGE</span></div>
+    <canvas id="logoC" width="360" height="240"></canvas>
+    <div class="menu-btns">
+      <button class="btn primary big" id="mPlay">PLAY</button>
+      <button class="btn blue" id="mDaily">📅 Daily Challenge <small id="mDailyBest"></small></button>
+      <button class="btn ghost" id="mGift">🎁 Daily Reward <span class="dot" id="giftDot"></span></button>
+    </div>
+    <div class="menu-best">Best score <b id="mBest">0</b></div>
+  </div>
+
+  <!-- game over -->
+  <div id="over" class="screen modal hidden">
+    <div class="card">
+      <h2 id="ovTitle">GAME OVER</h2>
+      <div class="big-score" id="ovScore">0</div>
+      <div class="ov-sub" id="ovNew"></div>
+      <div class="ov-stats"><div><span>Best</span><b id="ovBest">0</b></div><div><span>Top planet</span><canvas id="ovTop" width="64" height="64"></canvas></div><div><span>Coins</span><b id="ovCoins">0</b></div></div>
+      <button class="btn green" id="ovContinue">▶ Continue <small>watch ad</small></button>
+      <button class="btn primary" id="ovAgain">Play again</button>
+      <div class="row2"><button class="btn ghost" id="ovShare">Share</button><button class="btn ghost" id="ovMenu">Home</button></div>
+      <button class="btn gold sm" id="ovDouble">💰 Double coins <small>watch ad</small></button>
+    </div>
+  </div>
+
+  <!-- pause -->
+  <div id="pause" class="screen modal hidden"><div class="card">
+    <h2>PAUSED</h2>
+    <button class="btn primary" id="pResume">Resume</button>
+    <button class="btn ghost" id="pRestart">Restart</button>
+    <button class="btn ghost" id="pMenu">Home</button>
+  </div></div>
+
+  <!-- shop -->
+  <div id="shop" class="screen modal hidden"><div class="card tall">
+    <div class="card-head"><h2>SHOP</h2><div class="pill"><i class="coin"></i><b id="sCoins">0</b></div><button class="icon-btn close" data-close="shop">✕</button></div>
+    <div class="scroll" id="shopList"></div>
+  </div></div>
+
+  <!-- daily reward -->
+  <div id="daily" class="screen modal hidden"><div class="card">
+    <div class="card-head"><h2>DAILY REWARD</h2><button class="icon-btn close" data-close="daily">✕</button></div>
+    <div class="days" id="dayGrid"></div>
+    <button class="btn primary" id="dClaim">Claim</button>
+    <button class="btn gold sm" id="dDouble">Claim ×2 <small>watch ad</small></button>
+  </div></div>
+
+  <!-- settings -->
+  <div id="settings" class="screen modal hidden"><div class="card">
+    <div class="card-head"><h2>SETTINGS</h2><button class="icon-btn close" data-close="settings">✕</button></div>
+    <label class="toggle"><span>Sound</span><input type="checkbox" id="setSound"></label>
+    <label class="toggle"><span>Vibration</span><input type="checkbox" id="setHaptics"></label>
+    <button class="btn ghost" id="setRestore">Restore purchases</button>
+    <button class="btn ghost" id="setReset">Reset progress</button>
+    <p class="legal">Cosmic Merge v1.0</p>
+  </div></div>
+
+  <div id="toast" class="toast"></div>
+  <div id="adOverlay" class="ad-overlay hidden"><div class="ad-card"><div class="ad-tag">AD (dev placeholder)</div><div class="ad-body">Your ad plays here</div><div class="ad-timer" id="adTimer"></div><button class="btn primary sm" id="adClose">Close</button></div></div>
+  <div id="buyOverlay" class="ad-overlay hidden"><div class="ad-card"><div class="ad-tag">STORE (dev placeholder)</div><div class="ad-body" id="buyText"></div><div class="row2"><button class="btn primary sm" id="buyOk">Buy</button><button class="btn ghost sm" id="buyNo">Cancel</button></div></div></div>
+</div>
+<script src="js/core.js"></script>
+<script src="js/planets.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "Cosmic Merge",
+  "short_name": "Cosmic Merge",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0820",
+  "theme_color": "#0b0820",
+  "icons": [{"src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}
