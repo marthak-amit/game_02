@@ -12,7 +12,6 @@ jobs:
         with: { node-version: 20 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
-      - uses: android-actions/setup-android@v3
       - run: npm install
       - run: sh scripts/build-www.sh && npx cap sync android
       - name: Build debug APK (installable on any phone/tablet)
