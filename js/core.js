@@ -14,7 +14,7 @@ CM.track = (name, params) => { (CM.track.log = CM.track.log || []).push({ t: Dat
 CM.save = (() => {
   const KEY = 'cosmicmerge_v1';
   const def = { coins: 300, best: 0, daily: { date: '', score: 0 }, items: { hammer: 2, shake: 2 }, skins: ['cosmic'], skin: 'cosmic',
-    noAds: false, sound: true, haptics: true, streak: 0, lastClaim: '', games: 0, lastInterstitial: 0, adsToday: { date: '', n: 0 } };
+    noAds: false, sound: true, music: true, missions: { date: '', list: [] }, haptics: true, streak: 0, lastClaim: '', games: 0, lastInterstitial: 0, adsToday: { date: '', n: 0 } };
   let d;
   try { d = Object.assign({}, def, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { d = JSON.parse(JSON.stringify(def)); }
   const api = { d, write() { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} },
@@ -50,6 +50,16 @@ CM.audio = {
   boom() { this.noise(0.5, 0.35, 200); this.tone(90, 0.4, 'sawtooth', 0.25, 40); },
   over() { [392, 330, 262, 196].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.25, f * 0.97, i * 0.16)); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.25, 0, i * 0.09)); },
+  musicT: null, step: 0,
+  music(on) {
+    clearInterval(this.musicT); this.musicT = null; if (!on || !this.ctx || !CM.save.d.music) return;
+    const sc = [0, 3, 5, 7, 10, 12, 15], root = 196;
+    this.musicT = setInterval(() => {
+      if (!CM.save.d.music || !CM.save.d.sound) return; this.step++;
+      const n = sc[(this.step * 3 + (Math.random() * 3 | 0)) % sc.length], f = root * Math.pow(2, n / 12);
+      this.tone(f, 1.6, 'sine', 0.05, 0, 0); if (this.step % 4 === 0) this.tone(root / 2 * Math.pow(2, sc[(this.step >> 2) % 4] / 12), 3, 'triangle', 0.05);
+    }, 520);
+  },
   buzz(ms) { if (CM.save.d.haptics && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} }
 };
 

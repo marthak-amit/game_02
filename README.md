@@ -25,3 +25,7 @@ Product ids: `remove_ads, starter_pack, coins_s, coins_m, coins_l, skin_gold`.
 
 ## Roadmap to scale
 Online leaderboards, more skins/seasons, event modes, push reminders, analytics (hook: `CM.track`), A/B on ad frequency.
+
+## Android build (Capacitor)
+`sh scripts/build-www.sh && npm i && npx cap add android && npx cap sync android` → open in Android Studio.
+Then add AdMob + billing plugins and call `CM.ads.setProvider` / `CM.iap.setProvider`. Change `appId` in `capacitor.config.json`. Replace `privacy.html` placeholder and host it for the Play listing.

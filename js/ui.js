@@ -51,12 +51,13 @@
   function startGame(mode) {
     CM.audio.init(); CM.audio.click(); hide('menu'); hide('over'); hide('pause'); show('hud'); runCoinsSeen = 0; S.games++; CM.save.write();
     $('modeTag').textContent = mode === 'daily' ? '📅 DAILY' : ''; $('hint').style.opacity = S.games <= 2 ? 1 : 0; $('hint').style.display = S.games <= 2 ? '' : 'none';
-    game.start(mode); game.maxLevel = 0; evoLevel = -1; refresh(); CM.track('game_start', { mode, n: S.games });
+    missionProg('play', 1, true); game.start(mode); game.maxLevel = 0; CM.audio.music(true); evoLevel = -1; refresh(); CM.track('game_start', { mode, n: S.games });
   }
-  function toMenu() { hide('hud'); hide('over'); hide('pause'); game.state = 'menu'; refresh(); show('menu'); }
+  function toMenu() { CM.audio.music(false); hide('hud'); hide('over'); hide('pause'); game.state = 'menu'; refresh(); show('menu'); }
 
   function onOver() {
     CM.track('game_over', { score: game.score, lvl: game.maxLevel, mode: game.mode });
+    CM.audio.music(false); missionProg('score', game.score);
     const bonus = Math.floor(game.score / 60); addCoins(bonus);
     let newBest = false;
     if (game.mode === 'daily') { if (S.daily.date !== CM.today() || game.score > S.daily.score) { S.daily = { date: CM.today(), score: game.score }; newBest = true; } }
@@ -82,7 +83,7 @@
     try { if (navigator.share) await navigator.share({ title: 'Cosmic Merge', text: txt, url: location.href }); else { await navigator.clipboard.writeText(txt + ' ' + location.href); toast('Copied to clipboard'); } } catch (e) {}
   };
   $('pauseBtn').onclick = () => { if (game.state !== 'playing') return; CM.audio.click(); pause(true); };
-  function pause(on) { if (on) { game.state = 'paused'; show('pause'); } else { hide('pause'); game.state = 'playing'; } }
+  function pause(on) { if (on) { game.state = 'paused'; show('pause'); CM.audio.music(false); } else { hide('pause'); game.state = 'playing'; CM.audio.music(true); } }
   $('pResume').onclick = () => pause(false);
   $('pRestart').onclick = () => { hide('pause'); startGame(game.mode); };
   $('pMenu').onclick = () => toMenu();
@@ -152,9 +153,38 @@
   $('mGift').onclick = openDaily; $('dClaim').onclick = () => claim(1);
   $('dDouble').onclick = async () => { if (await CM.ads.rewarded('daily_x2')) claim(2); };
 
+  /* ---------- daily missions ---------- */
+  const MPOOL = [
+    { id: 'merge', t: n => `Merge ${n} planets`, goal: [25, 40], rew: 120 },
+    { id: 'reach', t: n => `Create ${CM.NAMES[n]}`, goal: [5, 6, 7], rew: 150 },
+    { id: 'score', t: n => `Score ${CM.fmt(n)} in one run`, goal: [2500, 4000], rew: 150 },
+    { id: 'combo', t: n => `Chain a ×${n} combo`, goal: [3, 4], rew: 130 },
+    { id: 'play', t: n => `Play ${n} games`, goal: [3, 5], rew: 100 }
+  ];
+  function ensureMissions() {
+    if (S.missions.date === CM.today()) return; const r = CM.rng(CM.seedFromDate('m' + CM.today())), pool = MPOOL.slice(), list = [];
+    while (list.length < 3) { const m = pool.splice(r() * pool.length | 0, 1)[0]; list.push({ id: m.id, goal: m.goal[r() * m.goal.length | 0], prog: 0, done: false }); }
+    S.missions = { date: CM.today(), list }; CM.save.write();
+  }
+  function missionProg(id, val, additive) {
+    ensureMissions(); for (const m of S.missions.list) if (m.id === id && !m.done) { m.prog = additive ? m.prog + val : Math.max(m.prog, val); }
+    CM.save.write(); updateMissDot();
+  }
+  function updateMissDot() { $('missDot').classList.toggle('hidden', !S.missions.list.some(m => !m.done && m.prog >= m.goal)); }
+  function openMissions() {
+    ensureMissions(); CM.audio.click(); const l = $('missList'); l.innerHTML = '';
+    S.missions.list.forEach(m => { const d = MPOOL.find(x => x.id === m.id), ready = m.prog >= m.goal, el = document.createElement('div'); el.className = 'mission';
+      el.innerHTML = `<div class="txt">${d.t(m.goal)}<div class="bar"><i style="width:${Math.min(100, m.prog / m.goal * 100)}%"></i></div></div>`;
+      const b = document.createElement('button'); b.className = 'btn ' + (ready && !m.done ? 'gold' : 'ghost'); b.disabled = !ready || m.done; b.textContent = m.done ? '✔' : ready ? d.rew + ' 🪙' : Math.min(m.prog, m.goal) + '/' + m.goal;
+      b.onclick = () => { m.done = true; S.coins += d.rew; persist(); CM.audio.coin(); openMissions(); }; el.appendChild(b); l.appendChild(el); });
+    show('missions'); updateMissDot();
+  }
+  $('mMissions').onclick = openMissions;
+  game.cb.merged = (lv, combo) => { missionProg('merge', 1, true); missionProg('reach', lv); missionProg('combo', combo); };
+
   /* ---------- settings ---------- */
-  $('mSettings').onclick = () => { $('setSound').checked = S.sound; $('setHaptics').checked = S.haptics; CM.audio.click(); show('settings'); };
-  $('setSound').onchange = e => { S.sound = e.target.checked; persist(); }; $('setHaptics').onchange = e => { S.haptics = e.target.checked; persist(); };
+  $('mSettings').onclick = () => { $('setSound').checked = S.sound; $('setMusic').checked = S.music; $('setHaptics').checked = S.haptics; CM.audio.click(); show('settings'); };
+  $('setSound').onchange = e => { S.sound = e.target.checked; persist(); }; $('setMusic').onchange = e => { S.music = e.target.checked; persist(); CM.audio.music(S.music && game.state === 'playing'); }; $('setHaptics').onchange = e => { S.haptics = e.target.checked; persist(); };
   $('setRestore').onclick = async () => { if (CM.iap.provider && CM.iap.provider.restore) await CM.iap.provider.restore(); toast('Purchases restored'); };
   $('setReset').onclick = () => { if (confirm('Erase all progress?')) CM.save.reset(); };
 
@@ -169,7 +199,7 @@
 
   /* ---------- main loop ---------- */
   function loop(now) { game.frame(now); if (game.state === 'menu') drawLogo(); else drawEvo(); requestAnimationFrame(loop); }
-  refresh(); requestAnimationFrame(loop);
+  ensureMissions(); updateMissDot(); refresh(); requestAnimationFrame(loop);
   if (S.lastClaim !== CM.today() && S.games > 0) setTimeout(openDaily, 600);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   CM.debug = /debug/.test(location.search);

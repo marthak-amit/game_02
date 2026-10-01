@@ -138,6 +138,7 @@
         this.burst(x, y, lv + 1, 8 + lv * 2); this.rings.push({ x, y, r: nb.r * .6, max: nb.r * 2.2, t: 0, col: '255,255,255' });
         for (const b of this.bodies) { if (b === nb || b.dead) continue; const dx = b.x - x, dy = b.y - y, d = Math.hypot(dx, dy); if (d < nb.r * 2.4 && d > .1) { const f = 90 * (1 - d / (nb.r * 2.4)); b.vx += dx / d * f * 3; b.vy += dy / d * f * 3; } }
         CM.audio.pop(lv, this.combo - 1); CM.audio.buzz(lv > 5 ? 40 : 15); this.shake = Math.max(this.shake, 1.5 + lv * .6);
+        this.cb.merged && this.cb.merged(lv + 1, this.combo);
         if (this.combo >= 2) this.cb.combo && this.cb.combo(this.combo);
         if (lv + 1 === CM.MAXL) this.cb.toast && this.cb.toast('☀️ You made the SUN!');
       }

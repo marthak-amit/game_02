@@ -48,6 +48,7 @@
     <div class="menu-btns">
       <button class="btn primary big" id="mPlay">PLAY</button>
       <button class="btn blue" id="mDaily">📅 Daily Challenge <small id="mDailyBest"></small></button>
+      <button class="btn ghost" id="mMissions">🎯 Missions <span class="dot hidden" id="missDot"></span></button>
       <button class="btn ghost" id="mGift">🎁 Daily Reward <span class="dot" id="giftDot"></span></button>
     </div>
     <div class="menu-best">Best score <b id="mBest">0</b></div>
@@ -89,14 +90,21 @@
     <button class="btn gold sm" id="dDouble">Claim ×2 <small>watch ad</small></button>
   </div></div>
 
+  <div id="missions" class="screen modal hidden"><div class="card">
+    <div class="card-head"><h2>DAILY MISSIONS</h2><button class="icon-btn close" data-close="missions">✕</button></div>
+    <div id="missList" style="width:100%;display:flex;flex-direction:column;gap:.5em"></div>
+    <p class="legal">New missions every day</p>
+  </div></div>
+
   <!-- settings -->
   <div id="settings" class="screen modal hidden"><div class="card">
     <div class="card-head"><h2>SETTINGS</h2><button class="icon-btn close" data-close="settings">✕</button></div>
     <label class="toggle"><span>Sound</span><input type="checkbox" id="setSound"></label>
+    <label class="toggle"><span>Music</span><input type="checkbox" id="setMusic"></label>
     <label class="toggle"><span>Vibration</span><input type="checkbox" id="setHaptics"></label>
     <button class="btn ghost" id="setRestore">Restore purchases</button>
     <button class="btn ghost" id="setReset">Reset progress</button>
-    <p class="legal">Cosmic Merge v1.0</p>
+    <p class="legal">Cosmic Merge v1.0 · <a href="privacy.html" style="color:#a9a3e0">Privacy</a></p>
   </div></div>
 
   <div id="toast" class="toast"></div>

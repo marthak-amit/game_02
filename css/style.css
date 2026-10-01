@@ -101,3 +101,8 @@ b{font-weight:700}
 .ad-overlay{position:absolute;inset:0;background:#000d;z-index:50;display:flex;align-items:center;justify-content:center}
 .ad-card{background:#fff;color:#222;border-radius:1em;padding:1em;width:80%;text-align:center;display:flex;flex-direction:column;gap:.7em;align-items:center}
 .ad-tag{font-size:.7em;letter-spacing:.1em;color:#999}.ad-body{font-size:1.2em;font-weight:700;min-height:5em;display:flex;align-items:center;justify-content:center}
+
+.mission{width:100%;background:#ffffff14;border-radius:.9em;padding:.55em .7em;display:flex;align-items:center;gap:.6em}
+.mission .txt{flex:1;line-height:1.2;font-size:.9em;font-weight:600}.mission .bar{height:.45em;background:#0006;border-radius:1em;margin-top:.35em;overflow:hidden}
+.mission .bar i{display:block;height:100%;background:var(--grn);border-radius:1em}
+.mission .btn{width:auto;min-width:4.6em;padding:.4em .6em;font-size:.85em}
