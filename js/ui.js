@@ -8,10 +8,10 @@
   /* ---------- layout ---------- */
   function layout() {
     const sc = Math.min(innerWidth / CM.W, innerHeight / 600, 2.6), H = Math.min(innerHeight / sc, 860), bw = CM.W * sc, bh = H * sc;
-    app.style.width = bw + 'px'; app.style.height = bh + 'px'; app.style.fontSize = (16 * sc) + 'px'; game.resize(bw, bh, sc, H);
+    lastSz = innerWidth + 'x' + innerHeight; app.style.width = bw + 'px'; app.style.height = bh + 'px'; app.style.fontSize = (16 * sc) + 'px'; game.resize(bw, bh, sc, H);
     drawEvo(true);
   }
-  addEventListener('resize', layout); layout();
+  let rsT, lastSz = ''; addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { const k = innerWidth + 'x' + innerHeight; if (k !== lastSz) layout(); }, 180); }); layout();
 
   CM.toast = t => toast(t);
   function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1800); }

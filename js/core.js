@@ -47,7 +47,17 @@ CM.audio = {
   hit(v) { const n = performance.now(); if (n - (this._h || 0) < 70) return; this._h = n; if (v > 160) this.tone(120 + Math.random() * 40, 0.06, 'sine', Math.min(0.18, v / 2500), 70); },
   click() { this.tone(520, 0.06, 'square', 0.08, 780); },
   coin() { this.tone(988, 0.08, 'square', 0.1); this.tone(1319, 0.18, 'square', 0.1, 0, 0.07); },
-  boom() { this.noise(0.5, 0.35, 200); this.tone(90, 0.4, 'sawtooth', 0.25, 40); },
+  noiseF(dur, vol, type, f0, f1, q = 1) {
+    if (!this.on()) return; const c = this.ctx, n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), ch = buf.getChannelData(0), t = c.currentTime;
+    for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1);
+    const s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.buffer = buf; s.connect(f); f.connect(g); g.connect(this.master); s.start();
+  },
+  boom() { this.noiseF(0.55, 0.22, 'lowpass', 500, 90); this.tone(70, 0.45, 'sine', 0.3, 38); },
+  whoosh() { this.noiseF(0.2, 0.14, 'bandpass', 350, 2400, 0.8); },
+  smash() { this.tone(170, 0.2, 'sine', 0.5, 42); this.tone(95, 0.28, 'triangle', 0.25, 50); this.noiseF(0.16, 0.22, 'bandpass', 2200, 900, 1.2); [2100, 2800, 3500, 1700].forEach((f, i) => this.tone(f, 0.22, 'triangle', 0.05, f * 0.8, 0.02 + i * 0.03)); },
+  swirl() { this.noiseF(0.55, 0.13, 'bandpass', 300, 1500, 1.5); this.tone(200, 0.5, 'sine', 0.12, 520); this.tone(520, 0.4, 'sine', 0.06, 260, 0.1); },
   over() { [392, 330, 262, 196].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.25, f * 0.97, i * 0.16)); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.25, 0, i * 0.09)); },
   /* ---- calm generative music: soft pads + bass + dreamy plucks through a delay ---- */
@@ -73,7 +83,8 @@ CM.audio = {
     o.connect(g); g.connect(m.bus); if (send) g.connect(m.send); o.start(t); o.stop(t + dur + 0.1);
   },
   _musicSched(m) {
-    const c = this.ctx; if (!c || c.state !== 'running') { m.next = Math.max(m.next, c ? c.currentTime : 0); return; }
+    const c = this.ctx; if (!c || c.state !== 'running') return;
+    if (m.next < c.currentTime - 0.05) m.next = c.currentTime + 0.15; // resync after suspend/background (prevents a burst of stacked notes)
     const hz = n => 440 * Math.pow(2, (n - 69) / 12), B = m.beat, bar = B * 4;
     const PROG = [[[48, 52, 55, 59], [45, 48, 52, 55], [41, 45, 48, 52], [43, 47, 50, 52]], [[45, 48, 52, 55], [41, 45, 48, 52], [48, 52, 55, 59], [43, 47, 50, 55]]];
     while (m.next < c.currentTime + 0.8) {
@@ -97,11 +108,13 @@ CM.audio = {
 CM.ads = {
   provider: null, lastInter: 0, sessionGames: 0,
   setProvider(p) { this.provider = p; },
+  _begin() { CM.adActive = true; },
+  _end() { CM.adActive = false; const g = CM.game; if (g) { g.acc = 0; g._last = 0; } },
   async rewarded(placement) {
     CM.track('ad_rewarded_request', { placement });
-    let ok;
-    if (this.provider && this.provider.rewarded) { try { ok = await this.provider.rewarded(placement); } catch (e) { ok = false; } }
-    else ok = await this._mock(placement, 3, true);
+    let ok; this._begin();
+    try { if (this.provider && this.provider.rewarded) { try { ok = await this.provider.rewarded(placement); } catch (e) { ok = false; } }
+    else ok = await this._mock(placement, 3, true); } finally { this._end(); }
     CM.track('ad_rewarded_' + (ok ? 'completed' : 'skipped'), { placement });
     if (!ok && this.provider && CM.toast) CM.toast('Ad not available right now, try again');
     return ok;
@@ -113,8 +126,9 @@ CM.ads = {
   async interstitial(placement) {
     if (!this.canInterstitial()) return false;
     this.lastInter = Date.now(); CM.track('ad_interstitial', { placement });
-    if (this.provider && this.provider.interstitial) { try { await this.provider.interstitial(placement); } catch (e) {} }
-    else await this._mock(placement, 2, false);
+    this._begin();
+    try { if (this.provider && this.provider.interstitial) { try { await this.provider.interstitial(placement); } catch (e) {} }
+    else await this._mock(placement, 2, false); } finally { this._end(); }
     return true;
   },
   _mock(placement, secs, mustWatch) {

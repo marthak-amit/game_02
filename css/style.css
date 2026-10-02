@@ -42,7 +42,7 @@ b{font-weight:700}
 
 /* screens */
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center}
-.modal{background:#05031acc;justify-content:center;z-index:20;backdrop-filter:blur(.15em)}
+.modal{background:#05031acc;justify-content:center;z-index:20;}
 #menu{z-index:10;padding:.8em;justify-content:space-between}
 .menu-top{width:100%;display:flex;justify-content:space-between;align-items:center}
 .logo{text-align:center;line-height:.85;margin-top:.5em}
